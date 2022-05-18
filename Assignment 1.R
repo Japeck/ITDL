@@ -1,4 +1,4 @@
-#TEST
+#libraries
+library(readr)
 
-#TEST JOOST
-print("HELLO")
+#reading csv
