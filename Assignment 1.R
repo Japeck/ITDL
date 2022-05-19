@@ -100,10 +100,10 @@ ntraining <- round(ptraining * nObservations)
 obs_training <-  sample(1:nObservations, ntraining, replace = FALSE)
 
 #Training and test data set with user.rating.count
-appstore_games <- subset(appstore_games, select = -c(ID, In.app.Purchases, Age.Rating, Genres, Languages, Original.Release.Date, Current.Version.Release.Date))
+appstore_games_sub <- subset(appstore_games, select = -c(ID, In.app.Purchases, Age.Rating, Genres, Languages, Original.Release.Date, Current.Version.Release.Date))
 
-train_appstore_games <- appstore_games[obs_training,]
-test_appstore_games <- appstore_games[-obs_training,]
+train_appstore_games <- appstore_games_sub[obs_training,]
+test_appstore_games <- appstore_games_sub[-obs_training,]
 
 #training and test data set without user.rating.count
 appstore_games_removed_user_count <- subset(appstore_games, select = -c(ID, User.Rating.Count, In.app.Purchases, Age.rating, Genres, Languages, Original.Release.Date, Current.Version.Release.Date))
@@ -113,8 +113,8 @@ test_appstore_games_removed_user_count <- appstore_games_removed_user_count[-obs
 
 #Task 6
 #Making the attributes the correct class so they can be scaled if necessary
-appstore_games$User.Rating.Count <- as.numeric(appstore_games$User.Rating.Count)
-appstore_games$Description.Word.Count <- as.numeric(appstore_games$Description.Word.Count)
+appstore_games$User.Rating.Count <- as.numeric(train_appstore_games$User.Rating.Count)
+appstore_games$Description.Word.Count <- as.numeric(train_appstore_games$Description.Word.Count)
 
 #scaling all numeric attributes
 scaled_appstore_games <- appstore_games %>% mutate_if(is.numeric,scale)
