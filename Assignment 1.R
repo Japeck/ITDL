@@ -4,6 +4,7 @@ library(stringr)
 library(lubridate)
 library(e1071)
 library(dplyr)
+library(caret)
 
 #Task 1
 #reading csv and creating dataframe
@@ -113,19 +114,36 @@ test_appstore_games_removed_user_count <- appstore_games_removed_user_count[-obs
 
 #Task 6
 #Making the attributes the correct class so they can be scaled if necessary
-appstore_games$User.Rating.Count <- as.numeric(train_appstore_games$User.Rating.Count)
-appstore_games$Description.Word.Count <- as.numeric(train_appstore_games$Description.Word.Count)
+train_appstore_games$User.Rating.Count <- as.numeric(train_appstore_games$User.Rating.Count)
+train_appstore_games$Description.Word.Count <- as.numeric(train_appstore_games$Description.Word.Count)
 
-#scaling all numeric attributes
-scaled_appstore_games <- appstore_games %>% mutate_if(is.numeric,scale)
-scaled_appstore_games_removed_user_count <- appstore_games_removed_user_count %>% mutate_if(is.numeric, scale)
+train_appstore_games_removed_user_count$Despriction.word.Count <- as.numeric(train_appstore_games_removed_user_count$Description.word.Count)
+
+#Standardisation and normalisation of train_appstore_games
+standardize_params_appstore_games <- preProcess(train_appstore_games, method = c("center", "scale"))
+normalize_params_appstore_games <- preProcess(train_appstore_games, method = c("range"))
+
+#Standardisation and normalisation of train_appstore_games_removed_user_Count
+standardize_params_appstore_games_removed_user_count <- preProcess(train_appstore_games, method = c("center", "scale"))
+normalize_params_appstore_games_removed_user_count <- preProcess(train_appstore_games, method = c("range"))
+
+#apply train scaling to appstore_games test data 
+scaled_test_appstore_games_standardisaton <- predict(standardize_params_appstore_games, test_appstore_games)
+scaled_test_appstore_games_normalisations <- predict(normalize_params_appstore_games, test_appstore_games)
+
+#apply train scaling to appstore_games_removed_user_count test data
+scaled_test_appstore_games_removed_user_Count_standardisation <- predict(standardize_params_appstore_games_removed_user_count, test_appstore_games_removed_user_count)
+scaled_test_appstore_games_removed_user_Count_normilisation <- predict(normalize_params_appstore_games_removed_user_count, test_appstore_games_removed_user_count)
 
 #Task 7
-#models
+#model
+mdlA <- Categorical.Rating.Count ~ .
 
 #Naive Bayes
 
+
 #GKNN
+
 
 #SVM
 
