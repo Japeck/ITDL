@@ -1,3 +1,13 @@
+#installed
+#install.packages("readr")
+#install.packages("stringr")
+#install.packages("lubridate")
+#install.packages("e1071")
+#install.packages("dplyr")
+#install.packages("caret")
+#install.packages("ggplots")
+#install.packages("caTools")
+
 #libraries
 library(readr)
 library(stringr)
@@ -5,18 +15,23 @@ library(lubridate)
 library(e1071)
 library(dplyr)
 library(caret)
+library(ggplot2)
+library(caTools)
 
-#Task 1
+#Task 1-------------------------------------------------------------------------
+
 #reading csv and creating dataframe
+
 appstore_games <- read.csv("appstore_games.csv")
 
-#Task 2
+#Task 2-------------------------------------------------------------------------
+
 #removing columns URL and Name
-appstore_games = subset(appstore_games, select = -c(URL, Name))
+appstore_games <- subset(appstore_games, select = -c(URL, Name))
 
 #creating new binary column and removing Subtitle column
 appstore_games$Recorded.Subtitle <- ifelse(appstore_games$Subtitle>0, 1, 0)
-appstore_games = subset(appstore_games, select = -c(Subtitle))
+appstore_games <- subset(appstore_games, select = -c(Subtitle))
 
 #divide text, make it into a new dataframe, and convert them into numeric values
 IAP <- str_split(appstore_games$In.app.Purchases, ',', simplify=TRUE)
@@ -50,8 +65,10 @@ appstore_games = subset(appstore_games, select = -c(Description))
 #creating a new column of 2 categories by making a dataframe of the developers frequencies and merging them
 Developers <- table(appstore_games$Developer)
 Developers.df <- as.data.frame(Developers)
+
 colnames(Developers.df) <- c('Developer', 'Developer.Game.Count')
 Developers.df$Developer.Category <- ifelse(Developers.df$Developer.Game.Count<4, 'Newbie', 'Professional')
+
 appstore_games = merge(appstore_games, Developers.df, by='Developer')
 appstore_games = subset(appstore_games, select = -c(Developer.Game.Count))
 
@@ -60,12 +77,13 @@ appstore_games$Second.Age.Rating <- ifelse(appstore_games$Age.Rating=='4+', '4+'
 
 #new Number.of.Languages column divided into Single or Many and games with no Languages or categorized as single
 appstore_games$Number.of.Languages <- ifelse(nchar(appstore_games$Languages)<=2, 'Single', 'Many')
+
 #new Is.Available.In.English column divided into Yes or No
-appstore_games$Is.Available.In.English <- ifelse(lengths(strsplit(appstore_games$Languages,
-                                                                  'EN'))==2 | startsWith(appstore_games$Languages,
-                                                                  'EN') | endsWith(appstore_games$Languages, 'EN'),
-                                      
-                                                                             'Yes', 'No')
+appstore_games$Is.Available.In.English <- { ifelse(lengths(strsplit(appstore_games$Languages,
+                                                  'EN'))==2 | startsWith(appstore_games$Languages,
+                                                  'EN') | endsWith(appstore_games$Languages, 'EN'),
+                                                  'Yes', 'No')
+}
 
 #removing Primary.Genre
 appstore_games = subset(appstore_games, select = -c(Primary.Genre))
@@ -86,66 +104,169 @@ appstore_games$Elapsed.Months <- interval(appstore_games$Current.Version.Release
 appstore_games$Game.Free <- ifelse(appstore_games$IAP.Values==0, 1, 0)
 
 #creating new Categorical.Rating.Count column
-appstore_games$Categorical.Rating.Count <- ifelse(appstore_games$User.Rating.Count<median(appstore_games$User.Rating.Count, na.rm=TRUE), 'Low', 'High')
+appstore_games$Categorical.Rating.Count <- {  
+  ifelse(appstore_games$User.Rating.Count<median(
+    appstore_games$User.Rating.Count, na.rm=TRUE), 'Low', 'High')
+}
 
-#Task 3
+#Task 3-------------------------------------------------------------------------
 
-#Task 4
+#Task 4-------------------------------------------------------------------------
 
-#Task 5
+#Task 5-------------------------------------------------------------------------
+
 #Creating the training observations
+set.seed(1234)
 nObservations <- nrow(appstore_games)
 ptraining <- 0.8
 ntraining <- round(ptraining * nObservations)
   
 obs_training <-  sample(1:nObservations, ntraining, replace = FALSE)
 
-#Training and test data set with user.rating.count
-appstore_games_sub <- subset(appstore_games, select = -c(ID, In.app.Purchases, Age.Rating, Genres, Languages, Original.Release.Date, Current.Version.Release.Date))
+#Training and test data set with user.rating.count------------------------------
+
+appstore_games_sub <- { subset(appstore_games, select = 
+                               -c(ID, In.app.Purchases, Age.Rating, Genres, 
+                                  Languages, Original.Release.Date, 
+                                  Current.Version.Release.Date))
+}
 
 train_appstore_games <- appstore_games_sub[obs_training,]
 test_appstore_games <- appstore_games_sub[-obs_training,]
 
-#training and test data set without user.rating.count
-appstore_games_removed_user_count <- subset(appstore_games, select = -c(ID, User.Rating.Count, In.app.Purchases, Age.Rating, Genres, Languages, Original.Release.Date, Current.Version.Release.Date))
+#Checking distribution
+summary(train_appstore_games)
+class(train_appstore_games)
+head(train_appstore_games)
+summary(test_appstore_games)
+class(test_appstore_games)
+head(test_appstore_games)
+
+
+#training and test data set without user.rating.count---------------------------
+
+appstore_games_removed_user_count <- { subset(appstore_games, select = 
+                                              -c(User.Rating.Count, ID, 
+                                                 In.app.Purchases, Age.Rating, 
+                                                 Genres, Languages, 
+                                                 Original.Release.Date, 
+                                                 Current.Version.Release.Date))
+}
 
 train_appstore_games_removed_user_count <- appstore_games_removed_user_count[obs_training,]
 test_appstore_games_removed_user_count <- appstore_games_removed_user_count[-obs_training,]
 
-#Task 6
+#Checking distribution
+summary(train_appstore_games_removed_user_count)
+class(train_appstore_games_removed_user_count)
+head(train_appstore_games_removed_user_count)
+summary(test_appstore_games_removed_user_count)
+class(test_appstore_games_removed_user_count)
+head(test_appstore_games_removed_user_count)
+
+#Task 6-------------------------------------------------------------------------
+
+#Standardisation and normalisation of train_appstore_games----------------------
+
 #Making the attributes the correct class so they can be scaled if necessary
 train_appstore_games$User.Rating.Count <- as.numeric(train_appstore_games$User.Rating.Count)
 train_appstore_games$Description.Word.Count <- as.numeric(train_appstore_games$Description.Word.Count)
 
-train_appstore_games_removed_user_count$Despriction.word.Count <- as.numeric(train_appstore_games_removed_user_count$Description.Word.Count)
-
-#Standardisation and normalisation of train_appstore_games
+# parameters of Standardisation and normalisation of train_appstore_games
 standardize_params_appstore_games <- preProcess(train_appstore_games, method = c("center", "scale"))
 normalize_params_appstore_games <- preProcess(train_appstore_games, method = c("range"))
 
-#Standardisation and normalisation of train_appstore_games_removed_user_Count
-standardize_params_appstore_games_removed_user_count <- preProcess(train_appstore_games, method = c("center", "scale"))
-normalize_params_appstore_games_removed_user_count <- preProcess(train_appstore_games, method = c("range"))
+#apply train scaling to appstore_games training data
+scaled_train_appstore_games_standardisation <- predict(standardize_params_appstore_games, train_appstore_games)
+scaled_train_appstore_games_normalisations <- predict(normalize_params_appstore_games, train_appstore_games)
 
 #apply train scaling to appstore_games test data 
-scaled_test_appstore_games_standardisaton <- predict(standardize_params_appstore_games, test_appstore_games)
+scaled_test_appstore_games_standardisation <- predict(standardize_params_appstore_games, test_appstore_games)
 scaled_test_appstore_games_normalisations <- predict(normalize_params_appstore_games, test_appstore_games)
 
+
+#Standardisation and normalisation of train_appstore_games_removed_user_Count----
+
+#Making the attributes the correct class so they can be scaled if necessary
+train_appstore_games_removed_user_count$Description.Word.Count <-
+  as.numeric(train_appstore_games_removed_user_count$Description.Word.Count)
+
+#parameters of Standardisation and normalisation of train_appstore_games_removed_user_Count
+standardize_params_appstore_games_removed_user_count <-
+  preProcess(train_appstore_games_removed_user_count, method = c("center", "scale"))
+normalize_params_appstore_games_removed_user_count <-
+  preProcess(train_appstore_games_removed_user_count, method = c("range"))
+
+# appl train scaling to appstore_games_removed_user_count train data
+scaled_train_appstore_games_removed_user_Count_standardisation <- 
+  predict(standardize_params_appstore_games_removed_user_count, train_appstore_games_removed_user_count)
+scaled_train_appstore_games_removed_user_Count_normalisation <-
+  predict(normalize_params_appstore_games_removed_user_count, train_appstore_games_removed_user_count)
+
 #apply train scaling to appstore_games_removed_user_count test data
-scaled_test_appstore_games_removed_user_Count_standardisation <- predict(standardize_params_appstore_games_removed_user_count, test_appstore_games_removed_user_count)
-scaled_test_appstore_games_removed_user_Count_normilisation <- predict(normalize_params_appstore_games_removed_user_count, test_appstore_games_removed_user_count)
+scaled_test_appstore_games_removed_user_Count_standardisation <- 
+  predict(standardize_params_appstore_games_removed_user_count, test_appstore_games_removed_user_count)
+scaled_test_appstore_games_removed_user_Count_normalisation <-
+  predict(normalize_params_appstore_games_removed_user_count, test_appstore_games_removed_user_count)
 
-#Task 7
-#model
-mdlA <- Categorical.Rating.Count ~ .
+#Task 7-------------------------------------------------------------------------
 
-#Naive Bayes
+#Naive Bayes--------------------------------------------------------------------
 
+#model training
+train_NB <- naiveBayes(Categorical.Rating.Count ~.,
+                       data = scaled_train_appstore_games_removed_user_Count_standardisation)
 
-#GKNN
+#model testing
+pre_NB <- predict(train_NB, scaled_test_appstore_games_removed_user_Count_standardisation)
 
+#model results
+rslt_Nnb <- table(predicted = pre_NB, 
+                 Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
-#SVM
+acc_Nb = mean(pre_NB == scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
+rslt_Nnb
+acc_Nb
 
+#GKNN---------------------------------------------------------------------------
 
+#model training
+set.seed(1234)
+
+train_GKNN <- { gknn(Categorical.Rating.Count ~., 
+                   data = scaled_train_appstore_games_removed_user_Count_normalisation, 
+                   method = "Manhattan", 
+                   k = 5)
+}
+
+#model testing
+pre_GKNN <- predict(train_GKNN, scaled_test_appstore_games_removed_user_Count_normalisation)
+
+#model results
+rslt_GKNN <- table(prediction = pre_GKNN,
+                   Observed = scaled_test_appstore_games_removed_user_Count_normalisation$Categorical.Rating.Count)
+
+acc_GKNN <- mean(pre_GKNN == scaled_test_appstore_games_removed_user_Count_normalisation)
+
+rslt_GKNN
+acc_GKNN
+
+#SVM----------------------------------------------------------------------------
+
+#model training
+train_SVM <- svm(Categorical.Rating.Coun ~.,
+                 data = scaled_train_appstore_games_removed_user_Count_standardisation,
+                 kernel = "linear")
+
+#model testing
+pre_SVM <- predict(train_SVM, newdata = scaled_test_appstore_games_removed_user_Count_standardisation)
+
+#model results
+rslt_SVM <- table( prediction = pre_SVM,
+                   Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
+
+acc_SVM <- mean(pre_SVM == scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
+  
+rslt_SVM
+acc_SVM
