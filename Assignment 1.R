@@ -292,7 +292,7 @@ pre_NB <- predict(train_NB, scaled_test_appstore_games_removed_user_Count_standa
 rslt_NB <- table(predicted = pre_NB, 
                  Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
-CM_NB <- confusionMatrix(rslt_NB)
+CM_NB <- confusionMatrix(rslt_NB, positive = "High")
 CM_NB
 
 #The Accuracy is 0.6927
@@ -367,7 +367,7 @@ pre_SVM <- predict(train_SVM, scaled_test_appstore_games_removed_user_Count_stan
 rslt_SVM <- table( prediction = pre_SVM,
                    Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
-CM_SVM <- confusionMatrix(rslt_SVM, positive = "1")
+CM_SVM <- confusionMatrix(rslt_SVM, positive = "High")
 
 CM_SVM
 
