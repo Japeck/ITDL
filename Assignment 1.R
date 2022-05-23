@@ -62,13 +62,17 @@ appstore_games$Average.IAP <- ifelse(appstore_games$IAP.Values>0,
 appstore_games$Description.Word.Count <- str_count(appstore_games$Description, '\\W+')
 appstore_games = subset(appstore_games, select = -c(Description))
 
-#creating a new column of 2 categories by making a dataframe of the developers frequencies and merging them
+#creating a new dataframe of the developers frequencies
 Developers <- table(appstore_games$Developer)
 Developers.df <- as.data.frame(Developers)
 
+#renaming the column titles
 colnames(Developers.df) <- c('Developer', 'Developer.Game.Count')
+
+#creating a new column with 2 categories
 Developers.df$Developer.Category <- ifelse(Developers.df$Developer.Game.Count<4, 'Newbie', 'Professional')
 
+#merging the new dataframe with the big dataframe and removing the Developer.Game.Count column
 appstore_games = merge(appstore_games, Developers.df, by='Developer')
 appstore_games = subset(appstore_games, select = -c(Developer.Game.Count))
 
@@ -103,7 +107,7 @@ appstore_games$Elapsed.Months <- interval(appstore_games$Current.Version.Release
 #creating new Game.Free column
 appstore_games$Game.Free <- ifelse(appstore_games$IAP.Values==0, 1, 0)
 
-#creating new Categorical.Rating.Count column
+#creating new Categorical.Rating.Count column by dividing User.Rating.Count into lower or higher than the median
 appstore_games$Categorical.Rating.Count <- {  
   ifelse(appstore_games$User.Rating.Count<median(
     appstore_games$User.Rating.Count, na.rm=TRUE), 'Low', 'High')
@@ -129,6 +133,12 @@ appstore_games$Average.User.Rating <- as.factor(appstore_games$Average.User.Rati
 appstore_games$Recorded.Subtitle <- as.factor(appstore_games$Recorded.Subtitle)
 appstore_games$Price <- as.factor(appstore_games$Price)
 appstore_games$Game.Free <- as.factor(appstore_games$Game.Free)
+appstore_games$Developer <- as.factor(appstore_games$Developer)
+appstore_games$Developer.Category <- as.factor(appstore_games$Developer.Category)
+appstore_games$Second.Age.Rating <- as.factor(appstore_games$Second.Age.Rating)
+appstore_games$Number.of.Languages <- as.factor(appstore_games$Number.of.Languages)
+appstore_games$Is.Available.In.English <- as.factor(appstore_games$Is.Available.In.English)
+appstore_games$Release.Month <- as.factor(appstore_games$Release.Month)
 
 #Task 4-------------------------------------------------------------------------
 #Create data frame with bottom and top 200 user ratings
@@ -255,20 +265,29 @@ train_NB <- naiveBayes(Categorical.Rating.Count ~.,
 pre_NB <- predict(train_NB, scaled_test_appstore_games_removed_user_Count_standardisation)
 
 #model results
-rslt_Nnb <- table(predicted = pre_NB, 
-                  Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
+rslt_NB <- table(predicted = pre_NB, 
+                 Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
-acc_Nb = mean(pre_NB == scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
+CM_NB <- confusionMatrix(rslt_NB)
+CM_NB
 
-rslt_Nnb
-acc_Nb
+#The Accuracy is 0.6927
+#The sensitivity is 0.5232
+#The Specificity is 0.8523
+#
+#
 
 #GKNN---------------------------------------------------------------------------
 
 #model training
 set.seed(1234)
 
-train_GKNN <- { gknn(Categorical.Rating.Count ~., 
+train_GKNN <- { gknn(Categorical.Rating.Count ~ Developer + Average.User.Rating +
+                       Price + Size + Recorded.Subtitle + IAP.Values + Minimum.IAP +
+                       Maximum.IAP + Sum.IAP + Average.IAP + Description.Word.Count +
+                       Developer.Category + Second.Age.Rating + Number.of.Languages +
+                       Is.Available.In.English + Number.of.Genres + Release.Month +
+                       Elapsed.Months + Game.Free, 
                      data = scaled_train_appstore_games_removed_user_Count_normalisation, 
                      method = "Manhattan", 
                      k = 5)
@@ -288,19 +307,38 @@ acc_GKNN
 
 #SVM----------------------------------------------------------------------------
 
+
+#Change dependent variable to numerical as is required for SVM
+scaled_train_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count <- ifelse(scaled_train_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count == "High", 1, 0)
+scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count <- ifelse(scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count == "High", 1, 0)
+
+#only selecting complete cases otherwise the confusion matrix does not work
+
+scaled_test_appstore_games_removed_user_Count_standardisation <- scaled_test_appstore_games_removed_user_Count_standardisation[complete.cases(scaled_test_appstore_games_removed_user_Count_standardisation),]
+
 #model training
-train_SVM <- svm(Categorical.Rating.Coun ~.,
-                 data = scaled_train_appstore_games_removed_user_Count_standardisation,
-                 kernel = "linear")
+train_SVM <- svm (Categorical.Rating.Count ~ Developer + Average.User.Rating +
+                    Price + Size + Recorded.Subtitle + IAP.Values + Minimum.IAP +
+                    Maximum.IAP + Sum.IAP + Average.IAP + Description.Word.Count +
+                    Developer.Category + Second.Age.Rating + Number.of.Languages +
+                    Is.Available.In.English + Number.of.Genres + Release.Month +
+                    Elapsed.Months + Game.Free,
+                  data = scaled_train_appstore_games_removed_user_Count_standardisation,
+                  kernel = "linear", type = "C-classification", )
 
 #model testing
-pre_SVM <- predict(train_SVM, newdata = scaled_test_appstore_games_removed_user_Count_standardisation)
+pre_SVM <- predict(train_SVM, scaled_test_appstore_games_removed_user_Count_standardisation)
 
 #model results
 rslt_SVM <- table( prediction = pre_SVM,
                    Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
-acc_SVM <- mean(pre_SVM == scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
+CM_SVM <- confusionMatrix(rslt_SVM, positive = "1")
 
-rslt_SVM
-acc_SVM
+CM_SVM
+
+#The Accuracy is 0.7451
+#The Sensitivity is 0.7695
+#The Specificity is 0.7125
+#
+#
