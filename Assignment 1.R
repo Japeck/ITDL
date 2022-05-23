@@ -1,4 +1,5 @@
 #installed
+#install.packages("jpeg")
 #install.packages("readr")
 #install.packages("stringr")
 #install.packages("lubridate")
@@ -8,7 +9,9 @@
 #install.packages("ggplots")
 #install.packages("caTools")
 
+
 #libraries
+library(jpeg)
 library(readr)
 library(stringr)
 library(lubridate)
@@ -128,6 +131,16 @@ appstore_games <- appstore_games[!is.na(appstore_games$Size),]
 appstore_games$Languages[appstore_games$Languages == ""] <- NA
 appstore_games$Languages[is.na(appstore_games$Languages)] <- "EN"
 
+#Count NA's of the rows that still contain NA's (IAP factors and Categorical.Rating.Count) in order to determine what to do with the missing values
+sum(is.na(appstore_games$Minimum.IAP))
+sum(is.na(appstore_games$Maximum.IAP))
+sum(is.na(appstore_games$Sum.IAP))
+sum(is.na(appstore_games$Average.IAP))
+sum(is.na(appstore_games$Categorical.Rating.Count))
+
+#Counting the NA's for the IAP factors shows that too much data will get lost if we choose for removing the game containing the NA's. On the other hand we also can't replace the IAP values with something, as they are too varying over all the variables to do so. Thus we decide to leave them in the database as they are, and when making the models we only use the games that have IAP values.
+#Counting the NA's for the Categorical.Rating.Count shows 9420 games missing this count. As there are only 2 categories for this variable (either High or Low) we can't replace the NA's with some variable. Also removing all the games with an NA would mean losing too much data. Best decision is thus to let them be as they are.
+
 #Convert data that should be categorical to categorical data
 appstore_games$Average.User.Rating <- as.factor(appstore_games$Average.User.Rating)
 appstore_games$Recorded.Subtitle <- as.factor(appstore_games$Recorded.Subtitle)
@@ -148,14 +161,19 @@ appstore_games.ext.user.ratings <- appstore_games.order.user.ratings
 appstore_games.ext.user.ratings <- appstore_games.ext.user.ratings[0:200,]
 appstore_games.ext.user.ratings <- rbind(appstore_games.ext.user.ratings, tail(appstore_games.order.user.ratings, 200))
 
-for (i in 1:nrow(appstore_games.ext.user.ratings)) {
-  myurl <- paste(appstore_games.ext.user.ratings[i,3], sep = "")
-  z <- tempfile()
-  download.file(myurl, z, mode = "Wb", cache0K = F)
-  pic <- readJPEG
-  writeJPEG(pic, paste("image", "i", ".jpg", sep = ""))
-  file.remove(z)
+#Write a code that loops over the number of rows in the just created data frame. This loop downloads the file from the url row for row and saves it in a destined folder. The name of the file is the ID of the respective row
+for(i in seq_len(nrow(appstore_games.ext.user.ratings))) {
+  download.file(url = appstore_games.ext.user.ratings$Icon.URL[i], 
+                destfile = paste0(appstore_games.ext.user.ratings$ID[i], 
+                                  '.jpg'), method = 'curl')
 }
+
+#As asked for in the assignment; code that downloads a small sample of 10 jpegs
+#for(i in 1:10) {
+#  download.file(url = appstore_games.ext.user.ratings$Icon.URL[i], 
+#                destfile = paste0(appstore_games.ext.user.ratings$ID[i], 
+#                                  '.jpg'), method = 'curl')
+#}
 
 #Task 5-------------------------------------------------------------------------
 
