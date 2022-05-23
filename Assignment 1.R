@@ -228,7 +228,9 @@ class(test_appstore_games_removed_user_count)
 head(test_appstore_games_removed_user_count)
                           
 #comments on distribution
-#                          
+# for both the test and training set the distribution of Categorical.Rating.Count 
+# is 25% High 25% Low and 50% NA. This means that the train and test data are
+# distributed equally and no bias in Categorical.Rating.Count is  found                         
 
 #Task 6-------------------------------------------------------------------------
 
