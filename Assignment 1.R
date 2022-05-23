@@ -152,6 +152,7 @@ appstore_games$Second.Age.Rating <- as.factor(appstore_games$Second.Age.Rating)
 appstore_games$Number.of.Languages <- as.factor(appstore_games$Number.of.Languages)
 appstore_games$Is.Available.In.English <- as.factor(appstore_games$Is.Available.In.English)
 appstore_games$Release.Month <- as.factor(appstore_games$Release.Month)
+appstore_games$Categorical.Rating.Count <- as.factor(appstore_games$Categorical.Rating.Count)                          
 
 #Task 4-------------------------------------------------------------------------
 #Create data frame with bottom and top 200 user ratings
@@ -225,6 +226,9 @@ head(train_appstore_games_removed_user_count)
 summary(test_appstore_games_removed_user_count)
 class(test_appstore_games_removed_user_count)
 head(test_appstore_games_removed_user_count)
+                          
+#comments on distribution
+#                          
 
 #Task 6-------------------------------------------------------------------------
 
