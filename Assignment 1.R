@@ -44,11 +44,11 @@ appstore_games$IAP.Values <- apply(IAP.df>0, MARGIN=1, FUN=sum, na.rm=TRUE)
 #Minimum IAP
 appstore_games$Minimum.IAP <- ifelse(appstore_games$IAP.Values>0,
                                      apply(IAP.df, MARGIN=1, FUN=min,
-                                     na.rm=TRUE), NA)
+                                           na.rm=TRUE), NA)
 #Maximum IAP
 appstore_games$Maximum.IAP <- ifelse(appstore_games$IAP.Values>0,
                                      apply(IAP.df, MARGIN=1,
-                                     FUN=max, na.rm=TRUE), NA)
+                                           FUN=max, na.rm=TRUE), NA)
 #Sum IAP
 appstore_games$Sum.IAP <- ifelse(appstore_games$IAP.Values>0,
                                  apply(IAP.df, MARGIN=1, FUN=sum,
@@ -80,9 +80,9 @@ appstore_games$Number.of.Languages <- ifelse(nchar(appstore_games$Languages)<=2,
 
 #new Is.Available.In.English column divided into Yes or No
 appstore_games$Is.Available.In.English <- { ifelse(lengths(strsplit(appstore_games$Languages,
-                                                  'EN'))==2 | startsWith(appstore_games$Languages,
-                                                  'EN') | endsWith(appstore_games$Languages, 'EN'),
-                                                  'Yes', 'No')
+                                                                    'EN'))==2 | startsWith(appstore_games$Languages,
+                                                                                           'EN') | endsWith(appstore_games$Languages, 'EN'),
+                                                   'Yes', 'No')
 }
 
 #removing Primary.Genre
@@ -110,8 +110,42 @@ appstore_games$Categorical.Rating.Count <- {
 }
 
 #Task 3-------------------------------------------------------------------------
+#Assign every NA for User Rating Count 5 rating counts
+appstore_games$User.Rating.Count[is.na(appstore_games$User.Rating.Count)] <- 5
+
+#Assign every NA for Average User Rating a 0 average
+appstore_games$Average.User.Rating[is.na(appstore_games$Average.User.Rating)] <- 0
+
+#Remove all rows with NA for Price and Size
+appstore_games <- appstore_games[!is.na(appstore_games$Price),]
+appstore_games <- appstore_games[!is.na(appstore_games$Size),]
+
+#Store all empty language cells as NA so its easier to work with and change them to EN
+appstore_games$Languages[appstore_games$Languages == ""] <- NA
+appstore_games$Languages[is.na(appstore_games$Languages)] <- "EN"
+
+#Convert data that should be categorical to categorical data
+appstore_games$Average.User.Rating <- as.factor(appstore_games$Average.User.Rating)
+appstore_games$Recorded.Subtitle <- as.factor(appstore_games$Recorded.Subtitle)
+appstore_games$Price <- as.factor(appstore_games$Price)
+appstore_games$Game.Free <- as.factor(appstore_games$Game.Free)
 
 #Task 4-------------------------------------------------------------------------
+#Create data frame with bottom and top 200 user ratings
+appstore_games.order.user.ratings <- appstore_games
+appstore_games.order.user.ratings <- appstore_games.order.user.ratings[order(appstore_games.order.user.ratings$Average.User.Rating),]
+appstore_games.ext.user.ratings <- appstore_games.order.user.ratings
+appstore_games.ext.user.ratings <- appstore_games.ext.user.ratings[0:200,]
+appstore_games.ext.user.ratings <- rbind(appstore_games.ext.user.ratings, tail(appstore_games.order.user.ratings, 200))
+
+for (i in 1:nrow(appstore_games.ext.user.ratings)) {
+  myurl <- paste(appstore_games.ext.user.ratings[i,3], sep = "")
+  z <- tempfile()
+  download.file(myurl, z, mode = "Wb", cache0K = F)
+  pic <- readJPEG
+  writeJPEG(pic, paste("image", "i", ".jpg", sep = ""))
+  file.remove(z)
+}
 
 #Task 5-------------------------------------------------------------------------
 
@@ -120,15 +154,15 @@ set.seed(1234)
 nObservations <- nrow(appstore_games)
 ptraining <- 0.8
 ntraining <- round(ptraining * nObservations)
-  
+
 obs_training <-  sample(1:nObservations, ntraining, replace = FALSE)
 
 #Training and test data set with user.rating.count------------------------------
 
 appstore_games_sub <- { subset(appstore_games, select = 
-                               -c(ID, In.app.Purchases, Age.Rating, Genres, 
-                                  Languages, Original.Release.Date, 
-                                  Current.Version.Release.Date))
+                                 -c(ID, In.app.Purchases, Age.Rating, Genres, 
+                                    Languages, Original.Release.Date, 
+                                    Current.Version.Release.Date))
 }
 
 train_appstore_games <- appstore_games_sub[obs_training,]
@@ -146,11 +180,11 @@ head(test_appstore_games)
 #training and test data set without user.rating.count---------------------------
 
 appstore_games_removed_user_count <- { subset(appstore_games, select = 
-                                              -c(User.Rating.Count, ID, 
-                                                 In.app.Purchases, Age.Rating, 
-                                                 Genres, Languages, 
-                                                 Original.Release.Date, 
-                                                 Current.Version.Release.Date))
+                                                -c(User.Rating.Count, ID, 
+                                                   In.app.Purchases, Age.Rating, 
+                                                   Genres, Languages, 
+                                                   Original.Release.Date, 
+                                                   Current.Version.Release.Date))
 }
 
 train_appstore_games_removed_user_count <- appstore_games_removed_user_count[obs_training,]
@@ -222,7 +256,7 @@ pre_NB <- predict(train_NB, scaled_test_appstore_games_removed_user_Count_standa
 
 #model results
 rslt_Nnb <- table(predicted = pre_NB, 
-                 Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
+                  Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
 acc_Nb = mean(pre_NB == scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
@@ -235,9 +269,9 @@ acc_Nb
 set.seed(1234)
 
 train_GKNN <- { gknn(Categorical.Rating.Count ~., 
-                   data = scaled_train_appstore_games_removed_user_Count_normalisation, 
-                   method = "Manhattan", 
-                   k = 5)
+                     data = scaled_train_appstore_games_removed_user_Count_normalisation, 
+                     method = "Manhattan", 
+                     k = 5)
 }
 
 #model testing
@@ -267,6 +301,6 @@ rslt_SVM <- table( prediction = pre_SVM,
                    Observed = scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
 
 acc_SVM <- mean(pre_SVM == scaled_test_appstore_games_removed_user_Count_standardisation$Categorical.Rating.Count)
-  
+
 rslt_SVM
 acc_SVM
