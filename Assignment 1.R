@@ -282,6 +282,11 @@ CM_NB
 #model training
 set.seed(1234)
 
+#only selecting complete cases otherwise the confusion matrix does not work
+
+scaled_test_appstore_games_removed_user_Count_standardisation <- scaled_test_appstore_games_removed_user_Count_standardisation[complete.cases(scaled_test_appstore_games_removed_user_Count_standardisation),]
+
+
 train_GKNN <- { gknn(Categorical.Rating.Count ~ Developer + Average.User.Rating +
                        Price + Size + Recorded.Subtitle + IAP.Values + Minimum.IAP +
                        Maximum.IAP + Sum.IAP + Average.IAP + Description.Word.Count +
@@ -300,10 +305,15 @@ pre_GKNN <- predict(train_GKNN, scaled_test_appstore_games_removed_user_Count_no
 rslt_GKNN <- table(prediction = pre_GKNN,
                    Observed = scaled_test_appstore_games_removed_user_Count_normalisation$Categorical.Rating.Count)
 
-acc_GKNN <- mean(pre_GKNN == scaled_test_appstore_games_removed_user_Count_normalisation)
+CM_GKNN <- confusionMatrix(rslt_GKNN, positive = "High")
 
-rslt_GKNN
-acc_GKNN
+CM_GKNN
+
+#The Accuracy is 
+#The sensitivity is 
+#The Specificity is 
+#
+#
 
 #SVM----------------------------------------------------------------------------
 
